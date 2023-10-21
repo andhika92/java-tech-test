@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Java Tech Test - Consumer</title>
+  
+  <link rel="stylesheet" type="text/css" th:href="@{/css/normalize.css}">
+  <link rel="stylesheet" type="text/css" th:href="@{/css/bootstrap.min.css}"> 
+</head>
+<body>
+  <div class="container py-4">
+  <!-- Content here -->
+    <div class="card">
+      <div class="card-header text-right">
+        <button type="button" class="btn btn-primary" onclick="formConsumer()">Add Consumer</button>
+      </div>
+      <div class="card-body">
+        <table id="datatable" class="table table-striped table-bordered" style="width:100%">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Nama</th>
+              <th>Alamat</th>
+              <th>Kota</th>
+              <th>Provinsi</th>
+              <th>Tanggal Registrasi</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="consumerModal" tabindex="-1" role="dialog" aria-labelledby="consumerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="consumerModalLabel">Form Consumer</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="id" class="col-form-label">ID:</label>
+            <input type="text" class="form-control" id="id" placeholder="Auto" disabled="disabled">
+          </div>
+          <div class="form-group">
+            <label for="nama" class="col-form-label">Nama:</label>
+            <input type="text" class="form-control" id="nama">
+          </div>
+          <div class="form-group">
+            <label for="alamat" class="col-form-label">Alamat:</label>
+            <textarea class="form-control" id="alamat"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="provinsi" class="col-form-label">Provinsi:</label>
+            <select class="form-control" id="provinsi" onchange="populateRegencies()">
+              <option value="" disabled selected>Please choose</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="kota" class="col-form-label">Kota:</label>
+            <select class="form-control" id="kota" disabled>
+              <option value="" disabled selected>Please choose Province</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tglRegistrasi" class="col-form-label">Tanggal Registrasi:</label>
+            <input type="text" class="form-control" id="tglRegistrasi" disabled>
+          </div>
+          <div class="form-group form-inline">
+            <input type="checkbox" class="form-control mr-2" id="status" value="Y">
+            <label class="col-form-label" for="status">Aktif</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="saveConsumer()">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/axios.js}"></script>
+  <script th:src="@{/js/jquery-3.7.0.js}"></script>
+  <script th:src="@{/js/bootstrap.min.js}"></script>
+  <script th:src="@{/js/jquery.dataTables.min.js}"></script>
+  <script th:src="@{/js/dataTables.bootstrap4.min.js}"></script>
+  <script th:src="@{/js/moment.min.js}"></script>
+  
+  <script>
+  axios.defaults.baseURL = 'http://localhost:8080';
+  
+  $(document).ready(async function(){
+    $('#datatable').DataTable({
+      columns: [
+        { data: 'id' },
+        { data: 'nama' },
+        { data: 'alamat' },
+        { data: 'kota' },
+        { data: 'provinsi' },
+        {
+          data: 'tglRegistrasi',
+          render: function(data, type) {
+            if (type === 'display') {
+              return moment(data).format('DD MMMM YYYY HH:mm:ss')
+            }
+
+            return data
+          }
+        },
+        {
+          data: 'status',
+          render: function(data, type) {
+            if (type === 'display') {
+              return data == 'Y' ? 'Aktif' : 'Non-Aktif'
+            }
+
+            return data
+          }
+        },
+        {
+          data: 'actions',
+          render: function (data, type, row) {
+            if (type === 'display') {
+              return '<button type="button" class="btn btn-primary mr-1" onclick="formConsumer(' + row.id + ')">Edit</button><button type="button" class="btn btn-danger" onclick="deleteConsumer(' + row.id + ')">Delete</button>'
+            }
+            return data
+          }
+        }
+      ],
+    });
+
+    await searchConsumers()
+    await loadProvinces()
+  });
+
+  async function loadProvinces() {
+    const response = await axios.get('/provinces')
+    const provinces = response.data.data
+
+    $('#provinsi').find('option:not(:first)').remove();
+    for (let i = 0; i < provinces.length; i++) {
+      $("#provinsi").append("<option value='" + provinces[i].kode + "'>" + provinces[i].nama + " </option>")
+    }
+  }
+
+  async function loadRegencies(provinceCode) {
+    const response = await axios.get(`/provinces/${provinceCode}`)
+    const regencies = response.data.data
+
+    $('#kota').find('option:not(:first)').remove();
+    for (let i = 0; i < regencies.length; i++) {
+      $("#kota").append("<option value='" + regencies[i].kode + "'>" + regencies[i].nama + " </option>")
+    }
+  }
+
+  async function populateRegencies() {
+    const provinceCode = $('#provinsi').find(":selected").val()
+
+    if (provinceCode) {
+      await loadRegencies(provinceCode)
+      $("#kota").prop('disabled', false)
+    } else {
+      $('#kota').find('option:not(:first)').remove();
+      $("#kota").prop('disabled', true)
+      $('#kota').val('').change()
+    }
+  }
+
+  async function searchConsumers() {
+    const response = await axios.get('/consumers')
+    const consumers = response.data.data.map(item => ({
+      ...item,
+      actions: 'actions',
+    }))
+
+    $('#datatable').dataTable().fnClearTable();
+    $('#datatable').dataTable().fnAddData(consumers);
+  }
+  
+  async function formConsumer(id = null) {
+    if (id == null) {
+      $('#id').val(id)
+      $('#nama').val('')
+      $('#alamat').val('')
+      $('#provinsi').val('').change()
+      $('#kota')
+        .find('option')
+        .remove()
+        .end()
+        .append('<option value="" disabled>Please select province</option>')
+        .val('')
+        .change()
+      $('#kota').prop('disabled', true)
+      $('#tglRegistrasi').val(moment().format('DD MMMM YYYY HH:mm:ss'))
+      $('#status').prop('checked', false)
+    } else {
+      try {
+        const response = await axios.get(`/consumers/${id}`)
+        const consumer = response.data.data
+        $('#id').val(id)
+        $('#nama').val(consumer.nama)
+        $('#alamat').val(consumer.alamat)
+
+        const province = $('#provinsi option:contains("'  + consumer.provinsi + '")').val()
+        $('#provinsi').val(province).change()
+        
+        const provinceCode = $('#provinsi').find(":selected").val()
+        await loadRegencies(provinceCode)
+        const regency = $('#kota option:contains("'  + consumer.kota + '")').val()
+        $('#kota').prop('disabled', false)
+        $('#kota').val(regency).change()
+        
+        $('#tglRegistrasi').val(moment(consumer.tglRegistrasi).format('DD MMMM YYYY HH:mm:ss'))
+        $('#status').prop('checked', consumer.status == 'Y')
+      } catch(e) {
+        if (e.response) {
+          alert(e.response.data.message)
+        } else {
+          alert('Somethig went wrong!')
+        }
+        console.error(e)
+      }
+
+    }
+    $('#consumerModal').modal('show')
+  }
+  
+  async function saveConsumer() {
+    const consumer = {
+      id: $('#id').val(),
+      nama: $('#nama').val(),
+      alamat: $('#alamat').val(),
+      provinsi: $('#provinsi').find(":selected").text(),
+      kota: $('#kota').find(":selected").text(),
+      tglRegistrasi: moment($('#tglRegistrasi').val()).format('YYYY-MM-DDTHH:mm:ss'),
+      status: $('#status').prop('checked') ? 'Y' : 'N',
+    }
+
+    try {
+      if (consumer.id) {
+        await axios.put('/consumers', consumer)
+      } else {
+        await axios.post('/consumers', consumer)
+      }
+      await searchConsumers()
+      $('#consumerModal').modal('hide')
+    } catch(e) {
+      if (e.response) {
+      	if (e.response.data.data) {
+      		alert(e.response.data.data.join('\r\n'))
+      	} else {
+        	alert(e.response.data.message)
+        }
+      } else {
+        alert('Something went wrong!')
+      }
+    }
+  }
+
+  async function deleteConsumer(id) {
+
+    try {
+      await axios.delete(`/consumers/${id}`)
+      searchConsumers()
+    } catch(e) {
+      if (e.response) {
+      	if (e.response.data.data) {
+      		alert(e.response.data.data.join('\r\n'))
+      	} else {
+        	alert(e.response.data.message)
+        }
+      } else {
+        alert('Something went wrong!')
+      }
+    }
+  }
+  </script>
+</body>
+</html>

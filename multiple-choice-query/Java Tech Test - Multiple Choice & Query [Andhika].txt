@@ -1,0 +1,67 @@
+Java Tech Test
+Multiple Choice & Query
+
+Multiple Choice
+1.  a
+2.  a
+3.  d
+4.  b
+5.  c
+6.  a
+7.  d
+8.  c
+9.  b
+10. c
+11. d
+12. b
+13. b
+14. c
+15. b
+
+Query
+16. 
+SELECT * 
+FROM customers 
+ORDER BY point DESC
+
+17.
+SELECT * 
+FROM customers 
+WHERE nama LIKE "%Ahmad%"
+
+18.
+SELECT TOP 3
+  a.nik,
+  a.nama
+FROM (
+  SELECT
+    nik,
+    nama,
+    total_pembelian_2017 + total_pembelian_2018 AS total_pembelian
+  FROM customers
+) a
+ORDER BY a.total_pembelian DESC
+
+19.
+SELECT SUM(total_pembelian_2017) AS total_pembelian
+FROM customers
+WHERE pulau <> 'Jawa'
+
+20.
+SELECT
+  nik,
+  nama,
+  alamat,
+  CASE WHEN total_pembelian_2017 - total_pembelian_2018 > 0
+    THEN 'Profit'
+    ELSE 'Defisit'
+  END AS total_margin
+FROM customers
+
+21.
+SELECT
+  nik,
+  nama,
+  CONCAT(alamat, ', ', kota, ', ', provinsi, ' - ', pulau) AS alamat_lengkap,
+FROM customers
+ORDER BY tgl_regis DESC
